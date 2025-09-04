@@ -1,5 +1,5 @@
-import Footer from "../Layout/Footer";
-import Header from "../Layout/Header";
+import Footer from "../Footer";
+import Header from "../Header";
 import AddContact from "./AddContact";
 import AddRandomContact from "./AddRandomContact";
 import FavoriteContacts from "./FavoriteContacts";

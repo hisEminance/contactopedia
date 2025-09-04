@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Input from "../Input";
+import Notification from "../Notification";
 
 const AddContact = ({
   handleAddContact,
@@ -7,63 +9,59 @@ const AddContact = ({
   isUpdating,
   selectedContact
 }) => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [lastMessage, setLastMessage] = useState("");
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
+  const [notification, setNotification] = useState(null);
 
-  // Коли обирають контакт для редагування – заповнити форму
   useEffect(() => {
-    if (isUpdating && selectedContact) {
-      setName(selectedContact.name);
-      setEmail(selectedContact.email);
-      setPhone(selectedContact.phone);
+    setForm({
+      name: selectedContact?.name ?? "",
+      email: selectedContact?.email ?? "",
+      phone: selectedContact?.phone ?? ""
+    });
+  }, [selectedContact]);
+
+  const handleChange = (field) => (e) => {
+    const value = e.target.value;
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleResponse = (response, { clearForm = false } = {}) => {
+    if (response && response.status === "success") {
+      setNotification({ type: "success", msg: response.msg || "Success" });
+      if (clearForm) setForm({ name: "", email: "", phone: "" });
     } else {
-      setName("");
-      setEmail("");
-      setPhone("");
+      setNotification({ type: "error", msg: (response && response.msg) || "Operation failed" });
     }
-  }, [isUpdating, selectedContact]);
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      setErrorMessage("All fields are required!");
+    const name = form.name.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+
+    if (!name || !email || !phone) {
+      setNotification({ type: "error", msg: "All fields are required!" });
       return;
     }
 
     if (isUpdating) {
       const response = handleUpdateContact({
-        id: selectedContact.id,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
+        id: selectedContact?.id,
+        name,
+        email,
+        phone,
       });
-
-      if (response.status === "success") {
-        setErrorMessage("");
-        setLastMessage(response.msg);
-      } else {
-        setErrorMessage(response.msg);
-      }
+      handleResponse(response);
     } else {
       const response = handleAddContact({
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
+        name,
+        email,
+        phone,
       });
-
-      if (response.status === "success") {
-        setLastMessage(response.msg);
-        setErrorMessage("");
-        setName("");
-        setEmail("");
-        setPhone("");
-      } else {
-        setErrorMessage(response.msg);
-      }
+      handleResponse(response, { clearForm: true });
     }
   };
 
@@ -75,38 +73,11 @@ const AddContact = ({
             {isUpdating ? "Update Contact" : "Add a new Contact"}
           </div>
 
-          <div className="col-12 col-md-4 p-1">
-            <input
-              className="form-control form-control-sm"
-              placeholder="Name..."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="col-12 col-md-4 p-1">
-            <input
-              className="form-control form-control-sm"
-              placeholder="Email.."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="col-12 col-md-4 p-1">
-            <input
-              className="form-control form-control-sm"
-              placeholder="Phone..."
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
+          <Input id="contact-name" name="name" placeholder="Name..." value={form.name} onChange={handleChange("name")} />
+          <Input id="contact-email" name="email" placeholder="Email..." value={form.email} onChange={handleChange("email")} />
+          <Input id="contact-phone" name="phone" placeholder="Phone..." value={form.phone} onChange={handleChange("phone")} />
 
-          {errorMessage && (
-            <div className="col-12 text-center text-danger">{errorMessage}</div>
-          )}
-
-          {lastMessage && (
-            <div className="col-12 text-center text-success">{lastMessage}</div>
-          )}
+          {notification && <Notification notification={notification} />}
 
           <div className="col-12 col-md-4 p-1">
             <button type="submit" className="btn btn-primary btn-sm form-control">
@@ -116,11 +87,7 @@ const AddContact = ({
 
           {isUpdating && (
             <div className="col-12 col-md-4 p-1">
-              <button
-                type="button"
-                onClick={cancelUpdateContact}
-                className="btn btn-secondary btn-sm form-control"
-              >
+              <button type="button" onClick={cancelUpdateContact} className="btn btn-secondary btn-sm form-control">
                 Cancel
               </button>
             </div>
